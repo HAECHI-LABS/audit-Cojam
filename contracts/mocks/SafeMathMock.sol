@@ -23,3 +23,4 @@ contract SafeMathMock {
         return SafeMath.mod(a, b);
     }
 }
+

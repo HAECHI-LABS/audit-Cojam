@@ -7,6 +7,9 @@ struct Market {
     address creator;
     string title;
     string status;
+    uint256 creatorFee;
+    uint256 cojamFeePercentage;
+    uint256 charityFeePercentage;
     uint createTime;
     bool exist;
 }

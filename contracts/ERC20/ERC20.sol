@@ -113,10 +113,10 @@ contract ERC20 is Context {
      *
      * - `spender` cannot be the zero address.
      */
-    function __increaseAllowance(address spender, uint256 addedValue) internal returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
-        return true;
-    }
+    // function __increaseAllowance(address spender, uint256 addedValue) internal returns (bool) {
+    //     _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+    //     return true;
+    // }
 
     /**
      * @dev Atomically decreases the allowance granted to `spender` by the caller.
@@ -132,10 +132,10 @@ contract ERC20 is Context {
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function __decreaseAllowance(address spender, uint256 subtractedValue) internal returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
-        return true;
-    }
+    // function __decreaseAllowance(address spender, uint256 subtractedValue) internal returns (bool) {
+    //     _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+    //     return true;
+    // }
 
     /**
      * @dev Moves tokens `amount` from `sender` to `recipient`.
@@ -155,7 +155,7 @@ contract ERC20 is Context {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(sender, recipient, amount);
+        // _beforeTokenTransfer(sender, recipient, amount);
 
         _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
         _balances[recipient] = _balances[recipient].add(amount);
@@ -174,7 +174,7 @@ contract ERC20 is Context {
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), account, amount);
+        // _beforeTokenTransfer(address(0), account, amount);
 
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
@@ -192,15 +192,15 @@ contract ERC20 is Context {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) private {
-        require(account != address(0), "ERC20: burn from the zero address");
+    // function _burn(address account, uint256 amount) private {
+    //     require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
+    //     _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
-        emit Transfer(account, address(0), amount);
-    }
+    //     _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
+    //     _totalSupply = _totalSupply.sub(amount);
+    //     emit Transfer(account, address(0), amount);
+    // }
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the `owner`s tokens.
@@ -229,10 +229,10 @@ contract ERC20 is Context {
      *
      * See {_burn} and {_approve}.
      */
-    function _burnFrom(address account, uint256 amount) private {
-        _burn(account, amount);
-        _approve(account, _msgSender(), _allowances[account][_msgSender()].sub(amount, "ERC20: burn amount exceeds allowance"));
-    }
+    // function _burnFrom(address account, uint256 amount) private {
+    //     _burn(account, amount);
+    //     _approve(account, _msgSender(), _allowances[account][_msgSender()].sub(amount, "ERC20: burn amount exceeds allowance"));
+    // }
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
@@ -248,7 +248,7 @@ contract ERC20 is Context {
      *
      * To learn more about hooks, head to xref:ROOT:using-hooks.adoc[Using Hooks].
      */
-    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
+    // function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
     
     /**
      * @dev Emitted when `value` tokens are moved from one account (`from`) to
