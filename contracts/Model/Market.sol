@@ -8,8 +8,15 @@ struct Market {
     string title;
     string status;
     uint256 creatorFee;
+    uint256 creatorFeePercentage;
     uint256 cojamFeePercentage;
     uint256 charityFeePercentage;
-    uint createTime;
+    uint approveTime;
+    uint finishTime;
+    uint successTime;
+    uint adjournTime;
+    uint256 marketTotalTokens;
+    uint256 marketRemainTokens;
+    uint256 correctAnswerKey;
     bool exist;
 }

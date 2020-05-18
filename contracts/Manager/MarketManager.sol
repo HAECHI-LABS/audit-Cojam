@@ -1,7 +1,7 @@
 pragma solidity ^0.6.0;
 pragma experimental ABIEncoderV2;
 
-import "..//Model/Market.sol";
+import "../Model/Market.sol";
 import "./MarketAnswerConstraint.sol";
 import "./AnswerBettingConstraint.sol";
 import "../ERC20/SafeMath.sol";
@@ -9,184 +9,163 @@ import "../Model/SuccessMarketDataStructure.sol";
 import "../Model/AdjournMarketDataStructure.sol";
 
 contract MarketManager is MarketAnswerConstraint, AnswerBettingConstraint{
-    
+
     using SafeMath for uint256;
-    
-    address constant public NULL = address(0);
-    
-    mapping(uint256 => Market) private _markets;  // All _markets
-    mapping(uint256 => Answer) private _answers;  // All _answers
-    mapping(uint256 => Betting) private _bettings;  // All __bettings;
-    
+
+    mapping(uint256 => Market) internal _markets;  // All _markets
+    mapping(uint256 => Answer) internal _answers;  // All _answers
+    mapping(uint256 => Betting) internal _bettings;  // All __bettings;
+
+    uint256 internal constant successMarketValidityDate = 180;
+    uint256 internal constant adjournMarketValidityDate = 180;
+    string internal constant APPROVE_MARKET_KEY = "approve";
+    string internal constant FINISHED_MARKET_KEY = "finished";
+    string internal constant SUCCESS_MARKET_KEY = "success";
+    string internal constant ADJOURN_MARKET_KEY = "adjourn";
+
     function _getBetting(uint256 bettingKey) internal view returns(Betting memory) {
-        require(true == _bettings[bettingKey].exist, "betting is null");
+        require(_bettings[bettingKey].exist, "Market/Betting: betting key does not exist");
         return _bettings[bettingKey];
     }
-    
-    function _bet(uint256 marketKey, uint256 answerKey, uint256 bettingKey, address voter, uint256 tokens) internal{
-        require(true == _markets[marketKey].exist, "market must be not null");   // Market must be not null
-        require(true == _isMarketStatus(marketKey, 'approve'), "market status must be approve when user betting"); // Market status must be approve when user betting.
-        require(true == containsAnswerKey(marketKey, answerKey), "answer must included in market");   // answer must included in market
-        require(true == _answers[answerKey].exist, "answer must be not null");   // Answer must be not null
-        require(false == _bettings[bettingKey].exist, "already betting exist"); // Betting found by key must be null
-        require(voter != NULL, "voter must be not null"); // voter must be not null
-        require(0 < tokens, "tokens must be greater than zero");    // tokens must be greater than zero.
 
-        _bettings[bettingKey] = Betting(voter, tokens, now, true);  // Create Betting
-        
-        putBettingKey(answerKey, bettingKey);
+    modifier bettable(uint256 marketKey, uint256 answerKey, uint256 bettingKey, uint256 tokens) {
+        require((_isMarketStatus(marketKey, APPROVE_MARKET_KEY)) && // Market status must be approve when user bets
+        (containsAnswerKey(marketKey, answerKey)) &&                // Answer must be not null
+        (_answers[answerKey].exist) &&                              // answer must included in market
+        (!_bettings[bettingKey].exist),                             // Betting found by key must be null
+        "Market/Betting: Betting is not available");
+        _;
     }
-    
-    function _approveMarket(uint256 marketKey, address creator, string memory title, string memory status, uint256 creatorFee, uint256 cojamFeePercentage, uint256 charityFeePercentage, uint256[] memory answerKeys) internal{
-        require(false == _markets[marketKey].exist, "already market exist");   // Market must be not null
-        
-        _markets[marketKey] = Market(creator, title, status, creatorFee, cojamFeePercentage, charityFeePercentage, now, true);    // Create Market
-        for(uint256 ii=0; ii<answerKeys.length; ii++){                 // Create Answer
-            require(false == _answers[answerKeys[ii]].exist, "already answer exist");
-            _answers[answerKeys[ii]] = Answer(true);
+
+    function _bet(uint256 mk, uint256 ak, uint256 bk, address voter, uint256 tokens) internal{
+
+        _bettings[bk] = Betting(mk, ak, voter, tokens, now, true);  // Create Betting
+
+        _markets[mk].marketTotalTokens = _markets[mk].marketTotalTokens.add(tokens);    // 추후 배당률을 계산하기 위함
+        _answers[ak].answerTotalTokens = _answers[ak].answerTotalTokens.add(tokens);
+
+        putBettingKey(ak, bk);
+    }
+
+    function _isRetrievable(uint256 marketKey) view internal returns(bool){
+        Market memory market = _getMarket(marketKey);
+
+        require(_isMarketStatus(marketKey, SUCCESS_MARKET_KEY) || _isMarketStatus(marketKey, ADJOURN_MARKET_KEY), "Market/Retrieve: Cannot Retrieve not finished market");
+
+        if(_isMarketStatus(marketKey, SUCCESS_MARKET_KEY)) {
+            uint256 diff = (now - market.successTime) / 60 / 60 / 24;
+            return successMarketValidityDate <= diff;
         }
-        
+        else {
+            uint256 diff = (now - market.adjournTime) / 60 / 60 / 24;
+            return adjournMarketValidityDate <= diff;
+        }
+    }
+
+    function _availableReceiveTokens(uint256 mk, uint256 bk) view internal returns(uint256) {
+        Market memory m = _getMarket(mk);
+        require(_isMarketStatus(mk, SUCCESS_MARKET_KEY) || _isMarketStatus(mk, ADJOURN_MARKET_KEY), "Market/Receive: Cannot receive token");
+
+        uint256 percentage = 100;
+        Betting memory b = _getBetting(bk);
+        uint256 _mk = b.marketKey;
+        uint256 _ak = b.answerKey;
+
+        uint256 ak = _markets[mk].correctAnswerKey;
+        if(_isMarketStatus(mk,SUCCESS_MARKET_KEY)){
+            require(ak == _ak, "Market/Receive: Answer key is not succeeded answer key");
+            Answer memory answer;
+            answer = _getAnswer(ak);
+            percentage = SafeMath.divPercentageResult(m.marketRemainTokens, answer.answerTotalTokens);
+        }
+
+
+        require((mk == _mk) &&
+        (containsAnswerKey(_mk, _ak)) &&    // answer must included in market
+        (containsBettingKey(_ak, bk)) &&   // betting must included in answer
+        (b.voter == msg.sender) , "Market/Receive: Given information does not match");
+
+        uint256 tokens = b.tokens.mul(percentage).div(100);
+
+        return tokens;
+    }
+
+    function _approveMarket(uint256 marketKey, address creator, string memory title, string memory status, uint256 creatorFee, uint256 creatorFeePercentage, uint256 cojamFeePercentage, uint256 charityFeePercentage, uint256[] memory answerKeys) internal{
+        require((!_markets[marketKey].exist), "Market/ApproveMarket: Market key already exist");
+        require(creatorFeePercentage.add(cojamFeePercentage).add(charityFeePercentage) <= 100, "Market/ApproveMarket: Sum of fee percentage is larger than 100");   // Market must be not null
+
+        _markets[marketKey] = Market(creator, title, status, creatorFee,creatorFeePercentage, cojamFeePercentage, charityFeePercentage, now, 0, 0, 0, 0, 0, 0, true);    // Create Market
+
+        for(uint256 ii=0; ii<answerKeys.length; ii++){                 // Create Answer
+            require(!_answers[answerKeys[ii]].exist, "Market/ApproveMarket: AnswerKey already exist");
+            _answers[answerKeys[ii]] = Answer(marketKey, 0, true);
+        }
+
         for(uint256 ii=0; ii<answerKeys.length; ii++){
            putAnswerKey(marketKey, answerKeys[ii]);
         }
     }
-    
+
     function _getMarket(uint256 marketKey) internal view returns(Market memory){
-        require(true == _markets[marketKey].exist, "market is null");
-        
+        require(_markets[marketKey].exist, "Market/Market: MarketKey does not exist");
+
         return _markets[marketKey];
     }
-    
+
+    function _finishMarket(uint256 marketKey) internal returns(bool){
+        require(_isMarketStatus(marketKey, APPROVE_MARKET_KEY), "Market/FinishMarket: Market is not approved status");             // market의 상태는 approve 상태여야 한다.
+        _changeMarketStatus(marketKey, FINISHED_MARKET_KEY);
+
+        _markets[marketKey].finishTime = now;
+        _markets[marketKey].marketRemainTokens = _markets[marketKey].marketTotalTokens;
+
+        return true;
+    }
+
+    function _setSuccessMarket(uint256 marketKey, uint256 answerKey) internal returns(bool) {
+        require(_isMarketStatus(marketKey, FINISHED_MARKET_KEY), "Market/SuccessMarket: Market is not finished status");        // success 이전 상태는 finished여야 한다.
+        require(containsAnswerKey(marketKey, answerKey), "Market/SuccessMarket: Market does not contain answerKey");
+        _changeMarketStatus(marketKey, SUCCESS_MARKET_KEY);
+        _markets[marketKey].correctAnswerKey = answerKey;
+        _markets[marketKey].successTime = now;
+
+        return true;
+    }
+
+    function _setAdjournMarket(uint256 marketKey) internal returns(bool) {
+        require(_isMarketStatus(marketKey, FINISHED_MARKET_KEY), "Market/AdjournMarket: Market is not finished status");        // adjourn 이전 상태는 finished여야 한다.
+        _changeMarketStatus(marketKey, ADJOURN_MARKET_KEY);
+        _markets[marketKey].adjournTime = now;
+
+        return true;
+    }
+
     function _getAnswerKeys(uint256 marketKey) internal view returns(uint256[] memory) {
          return getAvailableAnswerKeys(marketKey);
     }
-    
+
     function _getAnswer(uint256 answerKey) internal view returns(Answer memory) {
-        require(true == _answers[answerKey].exist, "answer is null");
-        
+        require(_answers[answerKey].exist, "Market/Answer: AnswerKey does not exist");
+
         return _answers[answerKey];
     }
-    
+
     function _getBettingKeys(uint256 answerKey) internal view returns(uint256[] memory) {
         return getAvailableBettingKeys(answerKey);
     }
-    
+
     function _changeMarketStatus(uint256 marketKey, string memory status) internal returns(bool) {
-        require(true == _markets[marketKey].exist, "market is null");   // Market must be not null
-        
+        require(_markets[marketKey].exist, "Market/ChangeStatus: MarketKey does not exist");   // Market must be not null
+
         Market storage market = _markets[marketKey];
         market.status = status;
         return true;
     }
-    
+
     function _isMarketStatus(uint256 marketKey, string memory status) internal view returns(bool) {
-        Market memory market = _getMarket(marketKey);
-        
-        return (keccak256(abi.encodePacked(status)) == keccak256(abi.encodePacked(market.status)));
+        Market memory m = _getMarket(marketKey);
+
+        return (keccak256(abi.encodePacked(status)) == keccak256(abi.encodePacked(m.status)));
     }
-    
-    function _getMarketTokenToBet(uint256 marketKey) internal view returns(uint256) {
-        uint256[] memory answerKeys = getAvailableAnswerKeys(marketKey);
-        
-        uint256 marketTotalTokens = 0;
-        
-        for(uint256 ii=0; ii<answerKeys.length; ii++){
-            marketTotalTokens = SafeMath.add(marketTotalTokens, _getAnswerTokenToBet(answerKeys[ii]));
-        }
-        
-        return marketTotalTokens;
-    }
-    
-    function _getAnswerTokenToBet(uint256 answerKey) internal view returns(uint256) {
-        uint256[] memory bettingKeys = getAvailableBettingKeys(answerKey);
-        
-        uint256 answerTotalTokens = 0;
-        
-        for(uint256 ii=0; ii<bettingKeys.length; ii++){
-            Betting memory betting = _bettings[bettingKeys[ii]];
-            
-            answerTotalTokens = SafeMath.add(answerTotalTokens, betting.tokens);
-        }
-        
-        return answerTotalTokens;
-    }
-    
-    function _getExpectedSuccessMarketResult(uint256 marketKey, uint256 answerKey) internal view returns(
-            SuccessMarketDataStructure memory
-        ) {
-        require(true == _isMarketStatus(marketKey, "approve"), "market status is not approve"); //  이전 상태는 approve 이어야 합니다.
-        require(true == containsAnswerKey(marketKey, answerKey), "answer must included in market");
-        
-        Market memory market = _getMarket(marketKey);
-        
-        uint256 marketTotalTokens = _getMarketTokenToBet(marketKey);
-        uint256 answerTotalTokens = _getAnswerTokenToBet(answerKey);
-        
-        uint256 creatorFee = market.creatorFee;
-        uint256 cojamFee = SafeMath.mulPercentage(marketTotalTokens, market.cojamFeePercentage);
-        uint256 charityFee = SafeMath.mulPercentage(marketTotalTokens, market.charityFeePercentage);
-        
-        uint256 realTotalToken = marketTotalTokens;
-        
-        
-        require(creatorFee <= realTotalToken, "creatorFee is more than real total token");
-        realTotalToken = SafeMath.sub(realTotalToken, creatorFee);
-        
-        require(cojamFee <= realTotalToken, "cojamFee is more than real total token");
-        realTotalToken = SafeMath.sub(realTotalToken, cojamFee);
-        
-        require(charityFee <= realTotalToken, "charityFee is more than real total token");
-        realTotalToken = SafeMath.sub(realTotalToken, charityFee);
-        
-        uint256 tokenBalance = realTotalToken;
-        
-        _getAnswer(answerKey);
-        
-        uint256[] memory bettingKeys = getAvailableBettingKeys(answerKey);
-        address[] memory destinations = new address[](bettingKeys.length);     
-        uint256[] memory tokens = new uint256[](bettingKeys.length);        
-        
-        if(0 < bettingKeys.length && 0 < answerTotalTokens) {
-            uint256 dividendRate = SafeMath.divPercentageResult(realTotalToken, answerTotalTokens);
-            
-            for(uint256 ii=0 ;ii<bettingKeys.length; ii++){
-                Betting memory betting = _getBetting(bettingKeys[ii]);
-                destinations[ii] = betting.voter;
-                tokens[ii] = SafeMath.mulPercentage(betting.tokens, dividendRate);
-                tokenBalance = SafeMath.sub(tokenBalance, tokens[ii]);
-            }
-        }
-        
-        return SuccessMarketDataStructure(marketTotalTokens, destinations, tokens, creatorFee, cojamFee, charityFee, tokenBalance);
-    }
-    
-    function _getExpectedAdjournMarketResult(uint256 marketKey) internal view returns(AdjournMarketDataStructure memory) {
-        require(true == _isMarketStatus(marketKey, "approve"), "market status is not approve"); //  이전 상태는 approve 이어야 합니다.
-        
-        uint256 marketTotalTokens = _getMarketTokenToBet(marketKey);
-        
-        uint256[] memory answerKeys = getAvailableAnswerKeys(marketKey);
-        uint256 bettingTotalLength = 0;
-        for(uint256 ii=0; ii<answerKeys.length; ii++){
-            uint256[] memory bettingKeys = getAvailableBettingKeys(answerKeys[ii]);
-            bettingTotalLength = SafeMath.add(bettingTotalLength, bettingKeys.length);
-        }
-        
-        address[] memory destinations = new address[](bettingTotalLength);
-        uint256[] memory tokens = new uint256[](bettingTotalLength);
-        
-        uint256 idx = 0;
-        for(uint256 ii=0; ii<answerKeys.length; ii++){
-            uint256[] memory bettingKeys = getAvailableBettingKeys(answerKeys[ii]);
-            
-            for(uint256 jj=0; jj<bettingKeys.length; jj++){
-                Betting memory betting = _getBetting(bettingKeys[jj]);
-                destinations[idx] = betting.voter;
-                tokens[idx] = betting.tokens;
-                idx = SafeMath.add(idx, 1);
-            }
-        }
-        
-        return AdjournMarketDataStructure(marketTotalTokens, destinations, tokens);
-    }
+
 }
