@@ -44,9 +44,6 @@ contract ERC20 is Context {
     function _transfer(address sender, address recipient, uint256 amount) internal virtual {
         require(sender != address(0), "ERC20:44");
         require(recipient != address(0), "ERC20:46");
-
-        // _beforeTokenTransfer(sender, recipient, amount);
-
         _balances[sender] = _balances[sender].sub(amount, "ERC20:50");
         _balances[recipient] = _balances[recipient].add(amount);
         emit Transfer(sender, recipient, amount);
@@ -54,9 +51,6 @@ contract ERC20 is Context {
 
     function _mint(address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20:56");
-
-        // _beforeTokenTransfer(address(0), account, amount);
-
         _totalSupply = _totalSupply.add(amount);
         _balances[account] = _balances[account].add(amount);
         emit Transfer(address(0), account, amount);
@@ -69,7 +63,7 @@ contract ERC20 is Context {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
-    
+
     event Transfer(address indexed from, address indexed to, uint256 value);
 
     event Approval(address indexed owner, address indexed spender, uint256 value);

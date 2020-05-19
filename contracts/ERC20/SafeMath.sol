@@ -120,14 +120,6 @@ library SafeMath {
 
         return c;
     }
-    
-    function divPercentageResult(uint256 x, uint256 y) internal pure returns(uint256) {
-        return div(x * 100, y);
-    }
-    
-    function mulPercentage(uint256 a, uint256 percentage) internal pure returns (uint256) {
-        return mul(a, percentage) / 100;
-    }
 
     /**
      * @dev Returns the remainder of dividing two unsigned integers. (unsigned integer modulo),
