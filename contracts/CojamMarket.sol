@@ -34,9 +34,9 @@ contract CojamMarket is MarketManager, Ownable{
     /**
      * 마켓의 수수료 정보를 가져오는 함수
      * */
-    function getMarketFee(uint256 marketKey) external view returns(uint256, uint256, uint256) {
+    function getMarketFee(uint256 marketKey) external view returns(uint256, uint256, uint256, uint256) {
         Market memory market = _getMarket(marketKey);
-        return (market.creatorFeePercentage, market.cojamFeePercentage, market.charityFeePercentage);
+        return (market.creatorFee, market.creatorFeePercentage, market.cojamFeePercentage, market.charityFeePercentage);
     }
 
     /**
