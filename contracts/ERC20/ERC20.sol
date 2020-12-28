@@ -1,70 +1,112 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.7.1;
 
-import "./GSN/Context.sol";
-import "./IERC20.sol";
-import "./SafeMath.sol";
+import "../library/SafeMath.sol";
 
-contract ERC20 is Context {
+abstract contract ERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
-
-    mapping (address => mapping (address => uint256)) private _allowances;
-
     uint256 private _totalSupply;
+    mapping(address => uint256) internal _balances;
+    mapping(address => mapping(address => uint256)) internal _allowances;
 
-    function __totalSupply() internal view returns (uint256) {
-        return _totalSupply;
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 amount
+    );
+
+    /*
+   * Internal Functions for ERC20 standard logics
+   */
+
+    function _transfer(address from, address to, uint256 amount)
+        internal
+        returns (bool success)
+    {
+        _balances[from] = _balances[from].sub(
+            amount,
+            "ERC20/transfer : cannot transfer more than token owner balance"
+        );
+        _balances[to] = _balances[to].add(amount);
+        emit Transfer(from, to, amount);
+        success = true;
     }
 
-    function __balanceOf(address account) internal view returns (uint256) {
-        return _balances[account];
-    }
-
-    function __transfer(address recipient, uint256 amount) internal returns (bool) {
-        _transfer(_msgSender(), recipient, amount);
-        return true;
-    }
-
-    function __allowance(address owner, address spender) internal view returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    function __approve(address spender, uint256 amount) internal returns (bool) {
-        _approve(_msgSender(), spender, amount);
-        return true;
-    }
-
-    function __transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
-        _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20:40"));
-        return true;
-    }
-
-    function _transfer(address sender, address recipient, uint256 amount) internal virtual {
-        require(sender != address(0), "ERC20:44");
-        require(recipient != address(0), "ERC20:46");
-        _balances[sender] = _balances[sender].sub(amount, "ERC20:50");
-        _balances[recipient] = _balances[recipient].add(amount);
-        emit Transfer(sender, recipient, amount);
-    }
-
-    function _mint(address account, uint256 amount) internal virtual {
-        require(account != address(0), "ERC20:56");
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
-        emit Transfer(address(0), account, amount);
-    }
-
-    function _approve(address owner, address spender, uint256 amount) private {
-        require(owner != address(0), "ERC20:66");
-        require(spender != address(0), "ERC20:67");
-
+    function _approve(address owner, address spender, uint256 amount)
+        internal
+        returns (bool success)
+    {
         _allowances[owner][spender] = amount;
         emit Approval(owner, spender, amount);
+        success = true;
     }
 
-    event Transfer(address indexed from, address indexed to, uint256 value);
+    function _mint(address recipient, uint256 amount)
+        internal
+        returns (bool success)
+    {
+        _totalSupply = _totalSupply.add(amount);
+        _balances[recipient] = _balances[recipient].add(amount);
+        emit Transfer(address(0), recipient, amount);
+        success = true;
+    }
 
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    function _burn(address burned, uint256 amount)
+        internal
+        returns (bool success)
+    {
+        _balances[burned] = _balances[burned].sub(
+            amount,
+            "ERC20Burnable/burn : Cannot burn more than user's balance"
+        );
+        _totalSupply = _totalSupply.sub(
+            amount,
+            "ERC20Burnable/burn : Cannot burn more than totalSupply"
+        );
+        emit Transfer(burned, address(0), amount);
+        success = true;
+    }
+
+    /*
+   * public view functions to view common data
+   */
+
+    function totalSupply() external view returns (uint256 total) {
+        total = _totalSupply;
+    }
+    function balanceOf(address owner) external view returns (uint256 balance) {
+        balance = _balances[owner];
+    }
+
+    function allowance(address owner, address spender)
+        external
+        view
+        returns (uint256 remaining)
+    {
+        remaining = _allowances[owner][spender];
+    }
+
+    /*
+   * External view Function Interface to implement on final contract
+   */
+    function name() virtual external view returns (string memory tokenName);
+    function symbol() virtual external view returns (string memory tokenSymbol);
+    function decimals() virtual external view returns (uint8 tokenDecimals);
+
+    /*
+   * External Function Interface to implement on final contract
+   */
+    function transfer(address to, uint256 amount)
+        virtual
+        external
+        returns (bool success);
+    function transferFrom(address from, address to, uint256 amount)
+        virtual
+        external
+        returns (bool success);
+    function approve(address spender, uint256 amount)
+        virtual
+        external
+        returns (bool success);
 }

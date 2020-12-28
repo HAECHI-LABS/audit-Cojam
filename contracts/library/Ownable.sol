@@ -1,6 +1,6 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.7.1;
 
-contract Ownable {
+abstract contract Ownable {
     address internal _owner;
 
     event OwnershipTransferred(
@@ -8,7 +8,7 @@ contract Ownable {
         address indexed newOwner
     );
 
-    constructor() internal {
+    constructor() {
         _owner = msg.sender;
         emit OwnershipTransferred(address(0), msg.sender);
     }
@@ -32,6 +32,10 @@ contract Ownable {
     {
         require(newOwner != address(0), "Ownable/transferOwnership : cannot transfer ownership to zero address");
         success = _transferOwnership(newOwner);
+    }
+
+    function renounceOwnership() external onlyOwner returns (bool success) {
+        success = _transferOwnership(address(0));
     }
 
     function _transferOwnership(address newOwner) internal returns (bool success) {

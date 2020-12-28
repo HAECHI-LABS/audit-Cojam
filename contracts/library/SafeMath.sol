@@ -1,4 +1,4 @@
-pragma solidity ^0.6.0;
+pragma solidity 0.7.1;
 
 /**
  * @dev Wrappers over Solidity's arithmetic operations with added overflow
@@ -25,7 +25,7 @@ library SafeMath {
      */
     function add(uint256 a, uint256 b) internal pure returns (uint256) {
         uint256 c = a + b;
-        require(c >= a, "SM:28");
+        require(c >= a, "SafeMath: addition overflow");
 
         return c;
     }
@@ -40,7 +40,7 @@ library SafeMath {
      * - Subtraction cannot overflow.
      */
     function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        return sub(a, b, "SM:43");
+        return sub(a, b, "SafeMath: subtraction overflow");
     }
 
     /**
@@ -54,7 +54,11 @@ library SafeMath {
      *
      * _Available since v2.4.0._
      */
-    function sub(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function sub(uint256 a, uint256 b, string memory errorMessage)
+        internal
+        pure
+        returns (uint256)
+    {
         require(b <= a, errorMessage);
         uint256 c = a - b;
 
@@ -79,7 +83,7 @@ library SafeMath {
         }
 
         uint256 c = a * b;
-        require(c / a == b, "SM:82");
+        require(c / a == b, "SafeMath: multiplication overflow");
 
         return c;
     }
@@ -96,7 +100,7 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function div(uint256 a, uint256 b) internal pure returns (uint256) {
-        return div(a, b, "SM:99");
+        return div(a, b, "SafeMath: division by zero");
     }
 
     /**
@@ -112,7 +116,11 @@ library SafeMath {
      *
      * _Available since v2.4.0._
      */
-    function div(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function div(uint256 a, uint256 b, string memory errorMessage)
+        internal
+        pure
+        returns (uint256)
+    {
         // Solidity only automatically asserts when dividing by 0
         require(b > 0, errorMessage);
         uint256 c = a / b;
@@ -133,7 +141,7 @@ library SafeMath {
      * - The divisor cannot be zero.
      */
     function mod(uint256 a, uint256 b) internal pure returns (uint256) {
-        return mod(a, b, "SM:144");
+        return mod(a, b, "SafeMath: modulo by zero");
     }
 
     /**
@@ -149,7 +157,11 @@ library SafeMath {
      *
      * _Available since v2.4.0._
      */
-    function mod(uint256 a, uint256 b, string memory errorMessage) internal pure returns (uint256) {
+    function mod(uint256 a, uint256 b, string memory errorMessage)
+        internal
+        pure
+        returns (uint256)
+    {
         require(b != 0, errorMessage);
         return a % b;
     }
