@@ -2,7 +2,7 @@ pragma solidity 0.7.1;
 
 import "../library/SafeMath.sol";
 
-abstract contract ERC20 {
+abstract contract KIP7 {
     using SafeMath for uint256;
 
     uint256 private _totalSupply;
@@ -17,7 +17,7 @@ abstract contract ERC20 {
     );
 
     /*
-   * Internal Functions for ERC20 standard logics
+   * Internal Functions for KIP7 standard logics
    */
 
     function _transfer(address from, address to, uint256 amount)
@@ -26,7 +26,7 @@ abstract contract ERC20 {
     {
         _balances[from] = _balances[from].sub(
             amount,
-            "ERC20/transfer : cannot transfer more than token owner balance"
+            "KIP7/transfer : cannot transfer more than token owner balance"
         );
         _balances[to] = _balances[to].add(amount);
         emit Transfer(from, to, amount);
@@ -58,11 +58,11 @@ abstract contract ERC20 {
     {
         _balances[burned] = _balances[burned].sub(
             amount,
-            "ERC20Burnable/burn : Cannot burn more than user's balance"
+            "KIP7Burnable/burn : Cannot burn more than user's balance"
         );
         _totalSupply = _totalSupply.sub(
             amount,
-            "ERC20Burnable/burn : Cannot burn more than totalSupply"
+            "KIP7Burnable/burn : Cannot burn more than totalSupply"
         );
         emit Transfer(burned, address(0), amount);
         success = true;

@@ -1,9 +1,9 @@
 pragma solidity 0.7.1;
 
-import "./ERC20.sol";
+import "./KIP7.sol";
 import "../library/Ownable.sol";
 
-abstract contract ERC20Lockable is ERC20, Ownable {
+abstract contract KIP7Lockable is KIP7, Ownable {
     using SafeMath for uint256;
 
     struct LockInfo {
@@ -18,7 +18,7 @@ abstract contract ERC20Lockable is ERC20, Ownable {
     event Unlock(address indexed from, uint256 amount);
 
     modifier checkLock(address from, uint256 amount) {
-        require(_balances[from] >= _totalLocked[from].add(amount), "ERC20Lockable/Cannot send more than unlocked amount");
+        require(_balances[from] >= _totalLocked[from].add(amount), "KIP7Lockable/Cannot send more than unlocked amount");
         _;
     }
 
@@ -26,10 +26,10 @@ abstract contract ERC20Lockable is ERC20, Ownable {
     internal
     returns (bool success)
     {
-        require(due > block.timestamp, "ERC20Lockable/lock : Cannot set due to past");
+        require(due > block.timestamp, "KIP7Lockable/lock : Cannot set due to past");
         require(
             _balances[from] >= amount.add(_totalLocked[from]),
-            "ERC20Lockable/lock : locked total should be smaller than balance"
+            "KIP7Lockable/lock : locked total should be smaller than balance"
         );
         _totalLocked[from] = _totalLocked[from].add(amount);
         _locks[from].push(LockInfo(amount, due));
@@ -47,7 +47,7 @@ abstract contract ERC20Lockable is ERC20, Ownable {
     }
 
     function unlock(address from, uint256 idx) external returns(bool success){
-        require(_locks[from][idx].due < block.timestamp,"ERC20Lockable/unlock: cannot unlock before due");
+        require(_locks[from][idx].due < block.timestamp,"KIP7Lockable/unlock: cannot unlock before due");
         _unlock(from, idx);
     }
 
@@ -82,7 +82,7 @@ abstract contract ERC20Lockable is ERC20, Ownable {
     {
         require(
             recipient != address(0),
-            "ERC20Lockable/transferWithLockUp : Cannot send to zero address"
+            "KIP7Lockable/transferWithLockUp : Cannot send to zero address"
         );
         _transfer(msg.sender, recipient, amount);
         _lock(recipient, amount, due);

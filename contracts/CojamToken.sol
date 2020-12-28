@@ -1,13 +1,13 @@
 pragma solidity 0.7.1;
 
-import "./erc20/ERC20Lockable.sol";
-import "./erc20/ERC20Burnable.sol";
+import "./kip7/KIP7Lockable.sol";
+import "./kip7/KIP7Burnable.sol";
 import "./library/Pausable.sol";
 import "./library/Freezable.sol";
 
 contract CojamToken is
-    ERC20Lockable,
-    ERC20Burnable,
+    KIP7Lockable,
+    KIP7Burnable,
     Freezable
 {
     using SafeMath for uint256;
@@ -30,7 +30,7 @@ contract CojamToken is
     {
         require(
             to != address(0),
-            "SAM/transfer : Should not send to zero address"
+            "CT/transfer : Should not send to zero address"
         );
         _transfer(msg.sender, to, amount);
         success = true;
@@ -46,7 +46,7 @@ contract CojamToken is
     {
         require(
             to != address(0),
-            "SAM/transferFrom : Should not send to zero address"
+            "CT/transferFrom : Should not send to zero address"
         );
         _transfer(from, to, amount);
         _approve(
@@ -54,7 +54,7 @@ contract CojamToken is
             msg.sender,
             _allowances[from][msg.sender].sub(
                 amount,
-                "SAM/transferFrom : Cannot send more than allowance"
+                "CT/transferFrom : Cannot send more than allowance"
             )
         );
         success = true;
@@ -67,7 +67,7 @@ contract CojamToken is
     {
         require(
             spender != address(0),
-            "SAM/approve : Should not approve zero address"
+            "CT/approve : Should not approve zero address"
         );
         _approve(msg.sender, spender, amount);
         success = true;

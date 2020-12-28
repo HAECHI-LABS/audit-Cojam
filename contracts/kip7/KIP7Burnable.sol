@@ -1,9 +1,9 @@
 pragma solidity 0.7.1;
 
-import "./ERC20.sol";
+import "./KIP7.sol";
 import "../library/Pausable.sol";
 
-abstract contract ERC20Burnable is ERC20, Pausable {
+abstract contract KIP7Burnable is KIP7, Pausable {
     using SafeMath for uint256;
 
     event Burn(address indexed burned, uint256 amount);
@@ -30,7 +30,7 @@ abstract contract ERC20Burnable is ERC20, Pausable {
             msg.sender,
             _allowances[burned][msg.sender].sub(
                 amount,
-                "ERC20Burnable/burnFrom : Cannot burn more than allowance"
+                "KIP7Burnable/burnFrom : Cannot burn more than allowance"
             )
         );
     }
